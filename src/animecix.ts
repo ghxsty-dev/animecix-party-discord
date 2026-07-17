@@ -5,7 +5,7 @@ export async function searchAnime(query: string, limit = 12) {
 }
 
 export async function getTitleDetail(titleId: number, season = 1) {
-  const res = await fetch(`/api/title/${titleId}?season=${season}`);
+  const res = await fetch(`/api/title?id=${titleId}&season=${season}`);
   if (!res.ok) throw new Error(`Title error: ${res.status}`);
   return res.json();
 }
@@ -26,7 +26,7 @@ export async function resolveTauStream(embedUrl: string, videoId: number) {
   const match = embedUrl.match(/tau-video\.xyz\/embed\/([^?]+)/);
   if (!match) throw new Error("Geçersiz embed URL");
 
-  const res = await fetch(`/api/tau/video/${match[1]}?vid=${videoId}`);
+  const res = await fetch(`/api/tau-video?embedId=${match[1]}&vid=${videoId}`);
   if (!res.ok) throw new Error(`Tau error: ${res.status}`);
   return res.json();
 }
