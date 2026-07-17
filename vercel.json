@@ -2,8 +2,5 @@
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
   "framework": "vite",
-  "installCommand": "npm install",
-  "env": {
-    "VITE_DISCORD_CLIENT_ID": "1527612779148869643"
-  }
+  "installCommand": "npm install"
 }
