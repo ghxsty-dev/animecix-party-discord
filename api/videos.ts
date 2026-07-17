@@ -1,9 +1,4 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { createCipheriv, randomBytes } from "crypto";
-
-const ANIMECIX_BASE = "https://animecix.tv";
-const TAU_VERSION = "1.1.6";
-const XEH_KEY = "i4C7R2fXGocdYgFLzCbDlsJjukf8G58b";
 
 const HEADERS: Record<string, string> = {
   "User-Agent":
@@ -13,41 +8,17 @@ const HEADERS: Record<string, string> = {
   Referer: "https://animecix.tv/",
 };
 
-function generateXEH(queryString: string): string {
-  const plaintext = `${TAU_VERSION}${queryString}`;
-  const key = Buffer.from(XEH_KEY, "utf-8");
-  const iv = randomBytes(12);
-  const cipher = createCipheriv("aes-256-gcm", key, iv);
-  const encrypted = Buffer.concat([cipher.update(plaintext, "utf-8"), cipher.final()]);
-  const tag = cipher.getAuthTag();
-  const payload = Buffer.concat([encrypted, tag]);
-  return `${payload.toString("base64")}.${iv.toString("base64")}`;
-}
-
-async function animecixFetch(path: string, params?: Record<string, string>) {
-  const qs = params ? "?" + new URLSearchParams(params).toString() : "";
-  const xeh = generateXEH(qs.replace(/^\?/, ""));
-  const res = await fetch(`${ANIMECIX_BASE}${path}${qs}`, {
-    headers: { ...HEADERS, "X-E-H": xeh },
-  });
-  if (!res.ok) throw new Error(`Animecix ${res.status}`);
-  return res.json();
-}
-
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "GET, OPTIONS");
-
   if (req.method === "OPTIONS") return res.status(200).end();
 
   try {
     const { titleId, season, episode } = req.query;
 
-    const data = await animecixFetch("/secure/videos", {
-      titleId: titleId as string,
-      season: (season as string) || "1",
-      episode: (episode as string) || "1",
-    });
+    const url = `https://animecix.tv/secure/videos?titleId=${titleId}&season=${(season as string) || "1"}&episode=${(episode as string) || "1"}`;
+    const r = await fetch(url, { headers: HEADERS });
+    const data = await r.json();
     res.json(data);
   } catch (err) {
     console.error("Videos error:", err);

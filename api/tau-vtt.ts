@@ -1,19 +1,17 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 
-const TAU_VIDEO_BASE = "https://tau-video.xyz";
-
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   res.setHeader("Access-Control-Allow-Origin", "*");
 
   try {
     const { subtitleId } = req.query;
-    const response = await fetch(`${TAU_VIDEO_BASE}/vtt/${subtitleId}`, {
+    const r = await fetch(`https://tau-video.xyz/vtt/${subtitleId}`, {
       headers: {
         Referer: "https://tau-video.xyz/",
         Origin: "https://tau-video.xyz",
       },
     });
-    const text = await response.text();
+    const text = await r.text();
     res.setHeader("Content-Type", "text/vtt; charset=utf-8");
     res.send(text);
   } catch (err) {
