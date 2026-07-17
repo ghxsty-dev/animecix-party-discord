@@ -1,4 +1,9 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
+import { createCipheriv, randomBytes } from "crypto";
+
+const ANIMECIX_BASE = "https://animecix.tv";
+const TAU_VERSION = "1.1.6";
+const XEH_KEY = "i4C7R2fXGocdYgFLzCbDlsJjukf8G58b";
 
 const HEADERS: Record<string, string> = {
   "User-Agent":
@@ -14,31 +19,42 @@ const HEADERS: Record<string, string> = {
   "sec-fetch-site": "same-origin",
 };
 
+function generateXEH(queryString: string): string {
+  const plaintext = `${TAU_VERSION}${queryString}`;
+  const key = Buffer.from(XEH_KEY, "utf-8");
+  const iv = randomBytes(12);
+  const cipher = createCipheriv("aes-256-gcm", key, iv);
+  const encrypted = Buffer.concat([cipher.update(plaintext, "utf-8"), cipher.final()]);
+  const tag = cipher.getAuthTag();
+  const payload = Buffer.concat([encrypted, tag]);
+  return `${payload.toString("base64")}.${iv.toString("base64")}`;
+}
+
+async function safeFetch(url: string, qs: string): Promise<any> {
+  const xeh = generateXEH(qs);
+  const r = await fetch(url, {
+    headers: { ...HEADERS, "X-E-H": xeh },
+    redirect: "follow",
+  });
+  const text = await r.text();
+  if (!r.ok) throw new Error(`${r.status}: ${text.slice(0, 200)}`);
+  return JSON.parse(text);
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "GET, OPTIONS");
   if (req.method === "OPTIONS") return res.status(200).end();
 
   try {
-    const { q, limit } = req.query;
-    if (!q) return res.status(400).json({ error: "q parameter required" });
-
-    const url = `https://animecix.tv/secure/search/${encodeURIComponent(q as string)}?type=undefined&limit=${(limit as string) || "12"}&provider=null`;
-    const r = await fetch(url, { headers: HEADERS, redirect: "follow" });
-    const text = await r.text();
-
-    if (!r.ok) {
-      console.error(`Animecix ${r.status}: ${text.slice(0, 500)}`);
-      return res.status(r.status).json({ error: `Animecix ${r.status}`, body: text.slice(0, 300) });
-    }
-
-    try {
-      const data = JSON.parse(text);
-      res.json(data);
-    } catch {
-      console.error("JSON parse error:", text.slice(0, 500));
-      res.status(500).json({ error: "Invalid JSON", body: text.slice(0, 300) });
-    }
+    const q = req.query.q as string;
+    const limit = (req.query.limit as string) || "12";
+    const qs = `type=undefined&limit=${limit}&provider=null`;
+    const data = await safeFetch(
+      `${ANIMECIX_BASE}/secure/search/${encodeURIComponent(q)}?${qs}`,
+      qs
+    );
+    res.json(data);
   } catch (err: any) {
     console.error("Search error:", err.message);
     res.status(500).json({ error: err.message });
