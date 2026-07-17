@@ -17,7 +17,7 @@ function renderNav() {
   const nav = document.createElement("div");
   nav.className = "nav";
   nav.innerHTML = `
-    <div class="nav-brand">🎌 AnimeciX</div>
+    <div class="nav-brand"><img src="/logo.svg" alt="AnimeciX" /></div>
     <div class="nav-actions">
       <button class="btn btn-sm" id="nav-browse">Keşfet</button>
       <button class="btn btn-sm" id="nav-search">Ara</button>
