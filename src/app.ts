@@ -71,8 +71,9 @@ async function renderBrowse() {
       card.addEventListener("click", () => showDetail(ep.title_id));
       grid.appendChild(card);
     });
-  } catch (err) {
-    content.innerHTML = `<p class="error">Bölümler yüklenemedi.</p>`;
+  } catch (err: any) {
+    console.error("Browse error:", err);
+    content.innerHTML = `<p class="error">Bölümler yüklenemedi: ${err.message || err}</p>`;
   }
 }
 

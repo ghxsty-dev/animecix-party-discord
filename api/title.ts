@@ -6,6 +6,12 @@ const HEADERS: Record<string, string> = {
   Accept: "application/json, text/html;q=0.9,*/*;q=0.8",
   "Accept-Language": "tr-TR,tr;q=0.9,en;q=0.8",
   Referer: "https://animecix.tv/",
+  "sec-ch-ua": '"Chromium";v="130", "Google Chrome";v="130", "Not?A_Brand";v="99"',
+  "sec-ch-ua-mobile": "?0",
+  "sec-ch-ua-platform": '"Windows"',
+  "sec-fetch-dest": "empty",
+  "sec-fetch-mode": "cors",
+  "sec-fetch-site": "same-origin",
 };
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -16,13 +22,23 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
     const id = req.query.id as string;
     const season = (req.query.season as string) || "1";
-
     const url = `https://animecix.tv/secure/titles/${id}?seasonNumber=${season}`;
-    const r = await fetch(url, { headers: HEADERS });
-    const data = await r.json();
-    res.json(data);
-  } catch (err) {
-    console.error("Title error:", err);
-    res.status(500).json({ error: "Title failed" });
+    const r = await fetch(url, { headers: HEADERS, redirect: "follow" });
+    const text = await r.text();
+
+    if (!r.ok) {
+      console.error(`Animecix ${r.status}: ${text.slice(0, 500)}`);
+      return res.status(r.status).json({ error: `Animecix ${r.status}`, body: text.slice(0, 300) });
+    }
+
+    try {
+      const data = JSON.parse(text);
+      res.json(data);
+    } catch {
+      res.status(500).json({ error: "Invalid JSON", body: text.slice(0, 300) });
+    }
+  } catch (err: any) {
+    console.error("Title error:", err.message);
+    res.status(500).json({ error: err.message });
   }
 }
